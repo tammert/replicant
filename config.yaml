@@ -1,0 +1,17 @@
+images:
+  nginx:
+    upstream: k8s.gcr.io/ingress-nginx/controller
+    downstream: eu.gcr.io/tammert/ingress-nginx/controller
+    prefix: v
+  atlantis:
+    upstream: docker.io/runatlantis/atlantis
+    downstream: eu.gcr.io/tammert/runatlantis/atlantis
+    prefix: v
+  external-dns:
+    upstream: k8s.gcr.io/external-dns/external-dns
+    downstream: eu.gcr.io/tammert/external-dns/external-dns
+    prefix: v
+  cert-manager:
+    upstream: quay.io/jetstack/cert-manager-controller
+    downstream: eu.gcr.io/tammert/jetstack/cert-manager-controller
+    prefix: v

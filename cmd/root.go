@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -12,8 +13,7 @@ var rootCmd = &cobra.Command{
 	Use:   "replicant",
 	Short: "Replicant mirrors public container images to private registries",
 	Run: func(cmd *cobra.Command, args []string) {
-		replicant.CloneToRepo()
-		replicant.ListTags()
+		replicant.Run(viper.GetString("config"))
 	},
 }
 
@@ -27,10 +27,12 @@ func Execute() {
 func init() {
 	viper.SetEnvPrefix("replicant")
 
-	rootCmd.PersistentFlags().StringP("image", "i", "ratelimitalways/test:latest", "Container image to mirror")
-	rootCmd.PersistentFlags().StringP("repository", "r", "ratelimitalways/test", "Container repository to list tags")
-	viper.BindPFlag("image", rootCmd.PersistentFlags().Lookup("image"))
-	viper.BindPFlag("repository", rootCmd.PersistentFlags().Lookup("repository"))
+	rootCmd.PersistentFlags().StringP("config", "c", "/home/tammert/github/tammert/replicant/config.yaml", "File containing the configuration for Replicant")
+	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 
 	viper.AutomaticEnv()
+
+	log.SetFormatter(&log.TextFormatter{})
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.DebugLevel)
 }
