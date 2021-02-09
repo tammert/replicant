@@ -1,11 +1,12 @@
 package replicant
 
 import (
+	"fmt"
 	"github.com/blang/semver/v4"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 func Run(configFile string) {
@@ -18,7 +19,7 @@ func mirrorAllTags(config Config) {
 	for _, image := range config.Images {
 		tags := listTags(image.UpstreamRepository)
 		for _, tag := range tags {
-			cloneToRepo(image.UpstreamRepository+":"+tag, image.DownstreamRepository+":"+tag)
+			log.Debug(tag)
 		}
 	}
 }
@@ -27,10 +28,37 @@ func mirrorAllTags(config Config) {
 func mirrorHighestTag(config Config) {
 	for _, image := range config.Images {
 		tag := findHighestTag(image.UpstreamRepository)
+
 		from := image.UpstreamRepository + ":" + image.TagPrefix + tag.String()
+		fromReference, err := name.ParseReference(from)
+		if err != nil {
+			log.Error(err)
+		}
+
 		to := image.DownstreamRepository + ":" + image.TagPrefix + tag.String()
-		cloneToRepo(from, to)
+		toReference, err := name.ParseReference(to)
+		if err != nil {
+			log.Error(err)
+		}
+
+		checkDownstreamForTag(toReference)
+		cloneToRepo(fromReference, toReference)
 	}
+}
+
+func checkDownstreamForTag(to name.Reference) {
+	auth := remote.WithAuth(getCorrectAuth(to.Context().RegistryStr()))
+	descriptor, err := remote.Get(to, auth)
+	if err != nil {
+		t, ok := err.(*transport.Error)
+		if ok {
+			if t.StatusCode == 404 {
+				log.Debug("not found!")
+			}
+		}
+		log.Error(err)
+	}
+	fmt.Println(descriptor)
 }
 
 func findHighestTag(repository string) semver.Version {
@@ -39,19 +67,9 @@ func findHighestTag(repository string) semver.Version {
 	return versions[len(versions)-1]
 }
 
-func cloneToRepo(from string, to string) {
-	upstream, err := name.ParseReference(from)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+func cloneToRepo(from name.Reference, to name.Reference) {
 	// Grab the upstream image.
-	image, err := remote.Image(upstream)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	private, err := name.ParseReference(to)
+	image, err := remote.Image(from)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,14 +78,8 @@ func cloneToRepo(from string, to string) {
 	//TODO: if image is already downstream, compare SHA
 	//TODO: add flag/config to specify whether to override if SHA is different -> default no?
 
-	// Check if downstream repository is in GCR.
-	if strings.Contains(private.Context().RegistryStr(), "gcr.io") {
-		auth := remote.WithAuth(gcrAuthenticator())
-		err = remote.Write(private, image, auth)
-	} else {
-		// Write the image to the private repository.
-		err = remote.Write(private, image)
-	}
+	auth := remote.WithAuth(getCorrectAuth(to.Context().RegistryStr()))
+	err = remote.Write(to, image, auth)
 	if err != nil {
 		log.Fatal(err)
 	}
