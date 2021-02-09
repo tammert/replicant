@@ -28,7 +28,9 @@ func init() {
 	viper.SetEnvPrefix("replicant")
 
 	rootCmd.PersistentFlags().StringP("config", "c", "/home/tammert/github/tammert/replicant/config.yaml", "File containing the configuration for Replicant")
+	rootCmd.PersistentFlags().BoolP("replace-tag", "r", false, "If you want to override downstream with same tag but different SHA")
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
+	viper.BindPFlag("replace-tag", rootCmd.PersistentFlags().Lookup("replace-tag"))
 
 	viper.AutomaticEnv()
 

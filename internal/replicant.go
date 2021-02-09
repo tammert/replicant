@@ -1,12 +1,13 @@
 package replicant
 
 import (
-	"fmt"
 	"github.com/blang/semver/v4"
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 func Run(configFile string) {
@@ -29,36 +30,65 @@ func mirrorHighestTag(config Config) {
 	for _, image := range config.Images {
 		tag := findHighestTag(image.UpstreamRepository)
 
-		from := image.UpstreamRepository + ":" + image.TagPrefix + tag.String()
-		fromReference, err := name.ParseReference(from)
+		upstream := image.UpstreamRepository + ":" + image.TagPrefix + tag.String()
+		upstreamReference, err := name.ParseReference(upstream)
 		if err != nil {
 			log.Error(err)
 		}
 
-		to := image.DownstreamRepository + ":" + image.TagPrefix + tag.String()
-		toReference, err := name.ParseReference(to)
+		downstream := image.DownstreamRepository + ":" + image.TagPrefix + tag.String()
+		downstreamReference, err := name.ParseReference(downstream)
 		if err != nil {
 			log.Error(err)
 		}
 
-		checkDownstreamForTag(toReference)
-		cloneToRepo(fromReference, toReference)
+		auth := remote.WithAuth(getCorrectAuth(downstreamReference.Context().RegistryStr()))
+		_, err = remote.Head(downstreamReference, auth)
+		if err != nil {
+			t, ok := err.(*transport.Error)
+			if ok {
+				if t.StatusCode == 404 {
+					log.Debug("image not found downstream, mirroring")
+					cloneToRepo(upstreamReference, downstreamReference)
+					return
+				}
+			} else {
+				log.Error(err)
+			}
+		}
+
+		// Image is present downstream.
+		if viper.GetBool("replace-tag") { // No need to do all this if you're not going to replace the image anyway!
+			upstreamImage := getImage(upstreamReference)
+			upstreamImageID, err := upstreamImage.ConfigName()
+			if err != nil {
+				log.Error(err)
+			}
+
+			downstreamImage := getImage(downstreamReference)
+			downstreamImageID, err := downstreamImage.ConfigName()
+			if err != nil {
+				log.Error(err)
+			}
+
+			// Compare the image IDs.
+			if upstreamImageID == downstreamImageID {
+				log.Debug("images are identical!")
+			} else {
+				cloneToRepo(upstreamReference, downstreamReference) //TODO: don't get the image here again, pass it along
+			}
+		}
 	}
 }
 
-func checkDownstreamForTag(to name.Reference) {
-	auth := remote.WithAuth(getCorrectAuth(to.Context().RegistryStr()))
-	descriptor, err := remote.Get(to, auth)
+func getImage(reference name.Reference) v1.Image {
+	auth := remote.WithAuth(getCorrectAuth(reference.Context().RegistryStr()))
+	image, err := remote.Image(reference, auth)
 	if err != nil {
-		t, ok := err.(*transport.Error)
-		if ok {
-			if t.StatusCode == 404 {
-				log.Debug("not found!")
-			}
-		}
 		log.Error(err)
 	}
-	fmt.Println(descriptor)
+
+	return image
 }
 
 func findHighestTag(repository string) semver.Version {
@@ -73,10 +103,6 @@ func cloneToRepo(from name.Reference, to name.Reference) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	//TODO: check if downstream repository already contains the image
-	//TODO: if image is already downstream, compare SHA
-	//TODO: add flag/config to specify whether to override if SHA is different -> default no?
 
 	auth := remote.WithAuth(getCorrectAuth(to.Context().RegistryStr()))
 	err = remote.Write(to, image, auth)
