@@ -140,10 +140,12 @@ func semVerSort(xs []string) semver.Versions {
 			log.Debugf("%s is probably not a SemVer version, ignoring", version.String())
 			continue
 		}
-		// Handle prerelease versions. TODO: allow via flag/config
+		// Handle prerelease versions.
 		if version.Pre != nil {
-			log.Debugf("%s is a prerelease version, ignoring", version.String())
-			continue
+			if !viper.GetBool("allow-prerelease") {
+				log.Debugf("%s is a prerelease version, ignoring", version.String())
+				continue
+			}
 		}
 
 		xv = append(xv, version)

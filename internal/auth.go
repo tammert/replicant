@@ -52,7 +52,7 @@ func ecrAuthenticator() authn.Authenticator {
 	// No credentials saved, create new ones.
 	authenticator := &authn.Basic{
 		Username: "AWS",
-		Password: "aws ecr get-login-password --region region", //TODO
+		Password: "aws ecr get-login-password --region <region>", //TODO
 	}
 	savedCredentials.ecrCredentials = authenticator
 	return authenticator
@@ -67,7 +67,7 @@ func acrAuthenticator() authn.Authenticator {
 	// No credentials saved, create new ones.
 	authenticator := &authn.Basic{
 		Username: "00000000-0000-0000-0000-000000000000",
-		Password: "az login && az acr login --name <acrName> --expose-token", //TODO
+		Password: "az login --service-principal --username <app-id> --password <password> --tenant <tenant-id> && az acr login --name <acr-name> --expose-token", //TODO
 	}
 	savedCredentials.acrCredentials = authenticator
 	return authenticator

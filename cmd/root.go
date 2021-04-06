@@ -27,10 +27,12 @@ func Execute() {
 func init() {
 	viper.SetEnvPrefix("replicant")
 
-	rootCmd.PersistentFlags().StringP("config", "c", "/home/tammert/github/tammert/replicant/config.yaml", "File containing the configuration for Replicant")
-	rootCmd.PersistentFlags().BoolP("replace-tag", "r", false, "If you want to override downstream with same tag but different SHA")
+	rootCmd.PersistentFlags().StringP("config", "c", "/config/replicant.yaml", "File containing the configuration for Replicant")
+	rootCmd.PersistentFlags().BoolP("replace-tag", "r", false, "Replace images with the same tag, if the image SHA is different")
+	rootCmd.PersistentFlags().BoolP("allow-prerelease", "p", false, "Include prerelease versions (e.g. 1.2.3-alpha1) when mirroring")
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 	viper.BindPFlag("replace-tag", rootCmd.PersistentFlags().Lookup("replace-tag"))
+	viper.BindPFlag("allow-prerelease", rootCmd.PersistentFlags().Lookup("allow-prerelease"))
 
 	viper.AutomaticEnv()
 
