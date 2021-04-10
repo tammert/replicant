@@ -26,31 +26,42 @@ func mirrorAllTags(config Config) {
 	}
 }
 
-// mirrorHighestTag mirrors the highest SemVer tag.
+// mirrorSemVerTags mirrors all SemVer tags.
+func mirrorSemVerTags(config Config) {
+	for _, image := range config.Images {
+		tags := semVerSort(listTags(image.UpstreamRepository))
+		for _, tag := range tags {
+			log.Debug(tag)
+		}
+	}
+}
+
+// mirrorHigherTags mirrors all tags that are a higher SemVer version than the highest available in the downstream repository.
+func mirrorHigherTags(config Config) {
+
+}
+
+// mirrorHighestTag mirrors the highest SemVer tag, if it's not already in the downstream repository.
 func mirrorHighestTag(config Config) {
 	for _, image := range config.Images {
 		tag := findHighestTag(image.UpstreamRepository)
 
-		upstream := image.UpstreamRepository + ":" + tag.Original()
-		upstreamReference, err := name.ParseReference(upstream)
+		upstreamReference, err := name.ParseReference(image.UpstreamRepository + ":" + tag.Original())
+		if err != nil {
+			log.Error(err)
+		}
+		downstreamReference, err := name.ParseReference(image.DownstreamRepository + ":" + tag.Original())
 		if err != nil {
 			log.Error(err)
 		}
 
-		downstream := image.DownstreamRepository + ":" + tag.Original()
-		downstreamReference, err := name.ParseReference(downstream)
-		if err != nil {
-			log.Error(err)
-		}
-
-		auth := remote.WithAuth(getCorrectAuth(downstreamReference.Context().RegistryStr()))
-		_, err = remote.Head(downstreamReference, auth)
+		_, err = remote.Head(downstreamReference, getAuth(downstreamReference))
 		if err != nil {
 			t, ok := err.(*transport.Error)
 			if ok {
 				if t.StatusCode == 404 {
 					log.Debug("image not found downstream, mirroring")
-					cloneToRepo(upstreamReference, downstreamReference)
+					mirrorImage(upstreamReference, downstreamReference)
 					return
 				}
 			} else {
@@ -58,38 +69,46 @@ func mirrorHighestTag(config Config) {
 			}
 		}
 
-		// Image is present downstream.
-		if viper.GetBool("replace-tag") { // No need to do all this if you're not going to replace the image anyway!
-			upstreamImage := getImage(upstreamReference)
-			upstreamImageID, err := upstreamImage.ConfigName()
+		// Tag is present downstream. If configured with `replace-tag`, check if the image ID matches.
+		if viper.GetBool("replace-tag") {
+			upstreamImageID, err := getImage(upstreamReference).ConfigName()
 			if err != nil {
 				log.Error(err)
 			}
-
-			downstreamImage := getImage(downstreamReference)
-			downstreamImageID, err := downstreamImage.ConfigName()
+			downstreamImageID, err := getImage(downstreamReference).ConfigName()
 			if err != nil {
 				log.Error(err)
 			}
 
 			// Compare the image IDs.
 			if upstreamImageID == downstreamImageID {
-				log.Debug("images are identical!")
+				log.Debug("image IDs are identical, no need to replace")
 			} else {
-				cloneToRepo(upstreamReference, downstreamReference) //TODO: don't get the image here again, pass it along
+				log.Debugf("image IDs are different, replacing %s with %s", downstreamImageID, upstreamImageID)
+				writeImage(upstreamReference, getImage(upstreamReference))
 			}
 		}
 	}
 }
 
-func getImage(reference name.Reference) v1.Image {
-	auth := remote.WithAuth(getCorrectAuth(reference.Context().RegistryStr()))
-	image, err := remote.Image(reference, auth)
+func getImage(from name.Reference) v1.Image {
+	image, err := remote.Image(from, getAuth(from))
 	if err != nil {
 		log.Error(err)
 	}
 
 	return image
+}
+
+func writeImage(to name.Reference, image v1.Image) {
+	err := remote.Write(to, image, getAuth(to))
+	if err != nil {
+		log.Error(err)
+	}
+}
+
+func getAuth(ref name.Reference) remote.Option {
+	return remote.WithAuth(getCorrectAuth(ref.Context().RegistryStr()))
 }
 
 func findHighestTag(repository string) *semver.Version {
@@ -98,18 +117,8 @@ func findHighestTag(repository string) *semver.Version {
 	return versions[len(versions)-1]
 }
 
-func cloneToRepo(from name.Reference, to name.Reference) {
-	// Grab the upstream image.
-	image, err := remote.Image(from)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	auth := remote.WithAuth(getCorrectAuth(to.Context().RegistryStr()))
-	err = remote.Write(to, image, auth)
-	if err != nil {
-		log.Fatal(err)
-	}
+func mirrorImage(from name.Reference, to name.Reference) {
+	writeImage(to, getImage(from))
 }
 
 func listTags(repository string) []string {
