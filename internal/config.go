@@ -13,7 +13,6 @@ type Config struct {
 type ImageConfig struct {
 	UpstreamRepository   string `yaml:"upstream"`
 	DownstreamRepository string `yaml:"downstream"`
-	TagPrefix            string `yaml:"prefix"`
 }
 
 func ReadConfig(configFile string) Config {

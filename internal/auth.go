@@ -66,8 +66,8 @@ func acrAuthenticator() authn.Authenticator {
 
 	// No credentials saved, create new ones.
 	authenticator := &authn.Basic{
-		Username: "00000000-0000-0000-0000-000000000000",
-		Password: "az login --service-principal --username <app-id> --password <password> --tenant <tenant-id> && az acr login --name <acr-name> --expose-token", //TODO
+		Username: "<sp-app-id>",
+		Password: "<sp-password>", //TODO
 	}
 	savedCredentials.acrCredentials = authenticator
 	return authenticator
