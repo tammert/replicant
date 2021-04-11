@@ -2,12 +2,16 @@ images:
   nginx:
     upstream: k8s.gcr.io/ingress-nginx/controller
     downstream: eu.gcr.io/tammert/ingress-nginx/controller
+    mode: higher
   atlantis:
     upstream: docker.io/runatlantis/atlantis
     downstream: eu.gcr.io/tammert/runatlantis/atlantis
+    mode: all
   external-dns:
     upstream: k8s.gcr.io/external-dns/external-dns
     downstream: eu.gcr.io/tammert/external-dns/external-dns
+    mode: highest
   cert-manager:
     upstream: quay.io/jetstack/cert-manager-controller
     downstream: eu.gcr.io/tammert/jetstack/cert-manager-controller
+    mode: semver
