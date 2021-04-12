@@ -1,9 +1,13 @@
 package replicant
 
 import (
+	"encoding/base64"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/v1/google"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"strings"
 )
 
@@ -49,10 +53,31 @@ func ecrAuthenticator() authn.Authenticator {
 		return savedCredentials.ecrCredentials
 	}
 
+	// Needs AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_DEFAULT_REGION
+	s := session.Must(session.NewSession())
+	svc := ecr.New(s)
+
+	input := &ecr.GetAuthorizationTokenInput{}
+	token, err := svc.GetAuthorizationToken(input)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var userName, password string
+	for _, data := range token.AuthorizationData {
+		decoded, err := base64.StdEncoding.DecodeString(*data.AuthorizationToken)
+		if err != nil {
+			log.Fatal(err)
+		}
+		splitter := strings.Split(string(decoded), ":")
+		userName = splitter[0]
+		password = splitter[1]
+	}
+
 	// No credentials saved, create new ones.
 	authenticator := &authn.Basic{
-		Username: "AWS",
-		Password: "aws ecr get-login-password --region <region>", //TODO
+		Username: userName,
+		Password: password,
 	}
 	savedCredentials.ecrCredentials = authenticator
 	return authenticator
@@ -64,10 +89,19 @@ func acrAuthenticator() authn.Authenticator {
 		return savedCredentials.acrCredentials
 	}
 
+	userName, ok := os.LookupEnv("AZURE_SP_ID")
+	if !ok {
+		log.Fatal("SP_APP_ID is not set")
+	}
+	password, ok := os.LookupEnv("AZURE_SP_PASSWORD")
+	if !ok {
+		log.Fatal("SP_PASSWD is not set")
+	}
+
 	// No credentials saved, create new ones.
 	authenticator := &authn.Basic{
-		Username: "<sp-app-id>",
-		Password: "<sp-password>", //TODO
+		Username: userName,
+		Password: password,
 	}
 	savedCredentials.acrCredentials = authenticator
 	return authenticator
