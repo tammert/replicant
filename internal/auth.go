@@ -91,11 +91,11 @@ func acrAuthenticator() authn.Authenticator {
 
 	userName, ok := os.LookupEnv("AZURE_SP_ID")
 	if !ok {
-		log.Fatal("SP_APP_ID is not set")
+		log.Fatal("AZURE_SP_ID is not set")
 	}
 	password, ok := os.LookupEnv("AZURE_SP_PASSWORD")
 	if !ok {
-		log.Fatal("SP_PASSWD is not set")
+		log.Fatal("AZURE_SP_PASSWORD is not set")
 	}
 
 	// No credentials saved, create new ones.
