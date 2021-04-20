@@ -41,7 +41,7 @@ func gcrAuthenticator() authn.Authenticator {
 	// No credentials saved, create new ones.
 	authenticator, err := google.NewEnvAuthenticator()
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 	savedCredentials.gcrCredentials = authenticator
 	return authenticator
