@@ -3,12 +3,16 @@
 DEV_VERSION := $(shell git rev-parse --short HEAD)
 RELEASE_VERSION := $(shell git describe --tags --abbrev=0)
 
-.PHONY: build
-build:
+.PHONY: build-image
+build-image:
 	docker build . -t replicant:$(DEV_VERSION)
 
-.PHONY: release
-release:
+.PHONY: release-image
+release-image:
 	docker build . -t docker.io/tammert/replicant:$(RELEASE_VERSION) -t docker.io/tammert/replicant:latest
 	docker push docker.io/tammert/replicant:$(RELEASE_VERSION)
 	docker push docker.io/tammert/replicant:latest
+
+.PHONY: build-binary
+build-binary:
+	CGO_ENABLED=0 go build -o replicant

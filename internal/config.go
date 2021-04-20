@@ -6,17 +6,18 @@ import (
 	"os"
 )
 
-var defaultMode = "highest"
-var allowedModes = []string{"highest", "higher", "all", "semver"}
+var allowedModes = []string{"highest", "higher", "semver", "all", ""}
 
 type Config struct {
 	Images map[string]*ImageConfig
 }
 
 type ImageConfig struct {
-	UpstreamRepository   string `yaml:"upstream"`
-	DownstreamRepository string `yaml:"downstream"`
-	Mode                 string `yaml:"mode"`
+	SourceRepository      string `yaml:"source"`
+	DestinationRepository string `yaml:"destination"`
+	Mode                  string `yaml:"mode"`
+	AllowPrerelease       bool   `yaml:"allow-prerelease"`
+	ReplaceTag            bool   `yaml:"replace-tag"`
 }
 
 func ReadConfig(configFile string) *Config {
@@ -26,7 +27,7 @@ func ReadConfig(configFile string) *Config {
 	}
 
 	config := &Config{}
-	err = yaml.NewDecoder(file).Decode(config)
+	err = yaml.NewDecoder(file).Decode(config) //TODO: use viper for this too?
 	if err != nil {
 		log.Error(err)
 	}
@@ -37,11 +38,6 @@ func ReadConfig(configFile string) *Config {
 
 func validateConfig(config *Config) {
 	for _, imageConfig := range config.Images {
-		if imageConfig.Mode == "" {
-			// No mode specified, use default
-			imageConfig.Mode = defaultMode
-			continue
-		}
 		if !stringInSlice(imageConfig.Mode, allowedModes) {
 			log.Fatalf("mode %s not recognized", imageConfig.Mode)
 		}

@@ -1,17 +1,24 @@
 images:
   nginx:
-    upstream: k8s.gcr.io/ingress-nginx/controller
-    downstream: eu.gcr.io/tammert/ingress-nginx/controller
-    mode: higher
+    source: k8s.gcr.io/ingress-nginx/controller
+    destination: eu.gcr.io/tammert/ingress-nginx/controller
+    mode: higher # default highest
   atlantis:
-    upstream: docker.io/runatlantis/atlantis
-    downstream: eu.gcr.io/tammert/runatlantis/atlantis
+    source: docker.io/runatlantis/atlantis
+    destination: eu.gcr.io/tammert/runatlantis/atlantis
     mode: all
+    allow-prerelease: true # default false
   external-dns:
-    upstream: k8s.gcr.io/external-dns/external-dns
-    downstream: eu.gcr.io/tammert/external-dns/external-dns
+    source: k8s.gcr.io/external-dns/external-dns
+    destination: eu.gcr.io/tammert/external-dns/external-dns
     mode: highest
+    replace-tag: true # default false
   cert-manager:
-    upstream: quay.io/jetstack/cert-manager-controller
-    downstream: eu.gcr.io/tammert/jetstack/cert-manager-controller
+    source: quay.io/jetstack/cert-manager-controller
+    destination: eu.gcr.io/tammert/jetstack/cert-manager-controller
     mode: semver
+  velero:
+    source: velero/velero # can omit docker.io
+    destination: eu.gcr.io/tammert/velero/velero
+    mode: semver
+    allow-prerelease: true

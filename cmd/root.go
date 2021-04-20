@@ -7,36 +7,47 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	replicant "replicant/internal"
+	"strings"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "replicant",
-	Short: "Replicant mirrors public container images to private registries",
+	Short: "Replicant mirrors container images between repositories",
 	Run: func(cmd *cobra.Command, args []string) {
-		replicant.Run(viper.GetString("config"))
+		// From here on out flags/environment are parsed.
+		setupLogging()
+		replicant.Run(viper.GetString("config-file"))
 	},
 }
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
 func init() {
+	// cobra
+	rootCmd.PersistentFlags().StringP("config-file", "c", "/config/replicant.yaml", "File containing the configuration for Replicant")
+	rootCmd.PersistentFlags().BoolP("debug", "d", false, "Enables debug logging")
+
+	// viper
 	viper.SetEnvPrefix("replicant")
-
-	rootCmd.PersistentFlags().StringP("config", "c", "/config/replicant.yaml", "File containing the configuration for Replicant")
-	rootCmd.PersistentFlags().BoolP("replace-tag", "r", false, "Replace images with the same tag, if the image SHA is different")
-	rootCmd.PersistentFlags().BoolP("allow-prerelease", "p", false, "Include prerelease versions (e.g. 1.2.3-alpha1) when mirroring")
-	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
-	viper.BindPFlag("replace-tag", rootCmd.PersistentFlags().Lookup("replace-tag"))
-	viper.BindPFlag("allow-prerelease", rootCmd.PersistentFlags().Lookup("allow-prerelease"))
-
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	err := viper.BindPFlags(rootCmd.PersistentFlags())
+	if err != nil {
+		fmt.Println("error binding flags, exiting")
+		os.Exit(1)
+	}
 	viper.AutomaticEnv()
+}
 
-	log.SetFormatter(&log.TextFormatter{})
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+func setupLogging() {
+	if viper.GetBool("debug") {
+		log.SetLevel(log.DebugLevel)
+	}
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
 }
