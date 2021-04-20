@@ -5,7 +5,7 @@ Replicant mirrors container images between repositories, using the [go-container
 * `source`: the 'from' repository
 * `destination`: the 'to' repository
 * `mode`: see *mirroring modes* below
-* `allow-prerelease`: if `true`, prerelease versions (as per the SemVer specification) will also be mirrored for all SemVer modes
+* `allow-prerelease`: if `true`, prerelease versions (as per the SemVer specification) will also be eligible for mirroring for SemVer *modes*
 * `replace-tag`: if `true`, will check if the image ID for an equal tag is the same for the source and the destination. If not, will replace the tag in the destination repository
 
 ### Mirroring modes
