@@ -60,6 +60,7 @@ Replicant uses [aws-sdk-go](https://github.com/aws/aws-sdk-go) to grab a short-l
 2) Download the binary from a GitHub release
 3) Use the official [Docker image](https://hub.docker.com/r/tammert/replicant)
 4) Use the official [Helm chart](https://github.com/tammert/helm-charts/tree/main/replicant)
+5) Use the official [Helm repo](https://tammer.it/helm-charts/)
 
 ## Gotchas
 * doesn't work with Docker image V1 schema
