@@ -1,6 +1,16 @@
 # replicant
 Replicant mirrors container images between repositories, using the [go-containerregistry](https://github.com/google/go-containerregistry) library. This means a Docker daemon is **not needed** for Replicant to mirror images; the library interacts directly with the registry APIs.
 
+## Use-cases
+* you're using a lot of open source images and the Docker Hub pull quota is bothering you
+* you'd prefer to keep a copy of open source images in your own private repository, just in case the authors ever take theirs offline
+* you've been burned by some outages (Docker Hub, Quay.io, etc) and prefer the uptime of your private registry
+
+## How does it work?
+Each time Replicant runs, it does a single pass over all images in the config file. It compares the image tags in the source repository to the destination repository and, depending on the selected mode, mirrors applicable images from source to destination using registry APIs (as opposed to `docker` commands). 
+
+The user is expected to take care of scheduling. Some examples include running periodically as a Kubernetes CronJob (as configured in the official Helm chart), via a crontab on a Linux system, or just locally for a one-off migration.
+
 ## Configuration options (per source)
 * `source`: the 'from' repository
 * `destination`: the 'to' repository
@@ -65,4 +75,4 @@ Replicant uses [aws-sdk-go](https://github.com/aws/aws-sdk-go) to grab a short-l
 ## Gotchas
 * doesn't work with Docker image V1 schema
 * all images are kept in memory, so Replicant will need *at least* as much memory as the (compressed?) size of the largest image you want to mirror
-* Docker Hub has rate limit for pulls in place; take this into account when selecting the mode when the source is Docker Hub
+* Docker Hub has rate limit for pulls in place; take this into account when selecting the mode when the source is docker.io
