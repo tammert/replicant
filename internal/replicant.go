@@ -30,48 +30,87 @@ func Run(configFile string) {
 
 // mirrorAllTags mirrors all tags.
 func mirrorAllTags(ic *ImageConfig) {
-	log.Infof("mirroring all tags from %s to %s", ic.SourceRepository, ic.DestinationRepository)
+	log.Infof("begin mirroring all tags from %s to %s", ic.SourceRepository, ic.DestinationRepository)
 
 	tags := listTags(ic.SourceRepository)
+	if len(tags) == 0 {
+		noTagsFound(ic.SourceRepository)
+		return
+	}
+
 	for _, tag := range tags {
 		mirrorTag(ic, tag)
 	}
+
+	log.Infof("done mirroring all tags from %s to %s", ic.SourceRepository, ic.DestinationRepository)
 }
 
 // mirrorSemVerTags mirrors all SemVer tags.
 func mirrorSemVerTags(ic *ImageConfig) {
-	log.Infof("mirroring all SemVer tags from %s to %s", ic.SourceRepository, ic.DestinationRepository)
+	log.Infof("begin mirroring all SemVer tags from %s to %s", ic.SourceRepository, ic.DestinationRepository)
 
-	tags := semVerSort(listTags(ic.SourceRepository), ic.AllowPrerelease)
-	for _, tag := range tags {
-		mirrorTag(ic, tag.Original())
+	tags := listTags(ic.SourceRepository)
+	if len(tags) == 0 {
+		noTagsFound(ic.SourceRepository)
+		return
+	}
+
+	sorted := semVerSort(tags, ic.AllowPrerelease)
+	if len(sorted) > 0 {
+		for _, tag := range sorted {
+			mirrorTag(ic, tag.Original())
+		}
+		log.Infof("done mirroring all SemVer tags from %s to %s", ic.SourceRepository, ic.DestinationRepository)
+	} else {
+		noSemverTagsFound(ic.SourceRepository)
 	}
 }
 
 // mirrorHigherTags mirrors all tags that are a higher SemVer version than the highest available in the destination repository.
 func mirrorHigherTags(ic *ImageConfig) {
-	log.Infof("mirroring all tags greater than the highest in %s from %s", ic.DestinationRepository, ic.SourceRepository)
+	log.Infof("begin mirroring all tags greater than the highest in %s from %s", ic.DestinationRepository, ic.SourceRepository)
 
 	var tagsToMirror []*semver.Version
 
 	highestDestinationTag := findHighestTag(ic.DestinationRepository, ic.AllowPrerelease)
-	sourceTags := semVerSort(listTags(ic.SourceRepository), ic.AllowPrerelease)
-	for _, tag := range sourceTags {
-		if tag.GreaterThan(highestDestinationTag) {
-			tagsToMirror = append(tagsToMirror, tag)
+	if highestDestinationTag == nil {
+		log.Infof("no highest tag found in %s, can't determine which tags from %s to mirror", ic.DestinationRepository, ic.SourceRepository)
+		return
+	}
+
+	tags := listTags(ic.SourceRepository)
+	if len(tags) == 0 {
+		noTagsFound(ic.SourceRepository)
+		return
+	}
+	sorted := semVerSort(tags, ic.AllowPrerelease)
+	if len(sorted) > 0 {
+		for _, tag := range sorted {
+			if tag.GreaterThan(highestDestinationTag) {
+				tagsToMirror = append(tagsToMirror, tag)
+			}
 		}
+		for _, t := range tagsToMirror {
+			mirrorTag(ic, t.Original())
+		}
+		log.Infof("done mirroring all tags greater than the highest in %s from %s", ic.DestinationRepository, ic.SourceRepository)
+	} else {
+		noSemverTagsFound(ic.SourceRepository)
 	}
-	for _, t := range tagsToMirror {
-		mirrorTag(ic, t.Original())
-	}
+
 }
 
 // mirrorHighestTag mirrors the highest SemVer tag, if it's not already in the destination repository.
 func mirrorHighestTag(ic *ImageConfig) {
-	log.Infof("mirroring highest tag from %s to %s", ic.SourceRepository, ic.DestinationRepository)
+	log.Infof("begin mirroring highest tag from %s to %s", ic.SourceRepository, ic.DestinationRepository)
 
 	tag := findHighestTag(ic.SourceRepository, ic.AllowPrerelease)
-	mirrorTag(ic, tag.Original())
+	if tag != nil {
+		mirrorTag(ic, tag.Original())
+		log.Infof("done mirroring highest tag from %s to %s", ic.SourceRepository, ic.DestinationRepository)
+	} else {
+		log.Infof("no suitable highest tag found in %s", ic.SourceRepository)
+	}
 }
 
 func mirrorTag(ic *ImageConfig, tag string) {
@@ -98,6 +137,7 @@ func mirrorTag(ic *ImageConfig, tag string) {
 			}
 		} else {
 			log.Error(err)
+			//TODO: explode here
 		}
 	}
 
@@ -130,7 +170,8 @@ func getImage(from name.Reference) v1.Image {
 		if _, ok := err.(*remote.ErrSchema1); ok {
 			log.Errorf("image %s uses incompatible v1 schema, skipping", from.String())
 		} else {
-			log.Fatal(err)
+			log.Error(err)
+			//TODO: explode here
 		}
 	}
 
@@ -141,6 +182,7 @@ func writeImage(to name.Reference, image v1.Image) {
 	err := remote.Write(to, image, getAuth(to.Context().RegistryStr()))
 	if err != nil {
 		log.Error(err)
+		//TODO: explode here
 	}
 }
 
@@ -149,9 +191,20 @@ func getAuth(registry string) remote.Option {
 }
 
 func findHighestTag(repository string, allowPrerelease bool) *semver.Version {
+	var versions = semver.Collection{}
+
 	tags := listTags(repository)
-	versions := semVerSort(tags, allowPrerelease)
-	return versions[len(versions)-1]
+	if len(tags) > 0 {
+		versions = semVerSort(tags, allowPrerelease)
+	} else {
+		return nil
+	}
+
+	if len(versions) > 0 {
+		return versions[len(versions)-1]
+	} else {
+		return nil
+	}
 }
 
 func listTags(repository string) []string {
@@ -162,7 +215,8 @@ func listTags(repository string) []string {
 
 	list, err := remote.List(r, getAuth(r.RegistryStr()))
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		//TODO: explode here
 	}
 
 	return list
@@ -184,7 +238,7 @@ func semVerSort(xs []string, allowPrerelease bool) semver.Collection {
 			}
 		}
 		// Tags with only numbers will incorrectly be parsed by NewVersion(), do a dirty 'verification' on Major number.
-		if version.Major() > 64 {
+		if version.Major() > 1024 {
 			log.Debugf("%s is probably not a SemVer version, ignoring", version.String())
 			continue
 		}
@@ -201,4 +255,12 @@ func semVerSort(xs []string, allowPrerelease bool) semver.Collection {
 
 	sort.Sort(xv)
 	return xv
+}
+
+func noTagsFound(s string) {
+	log.Infof("no tags found in %s, nothing to mirror", s)
+}
+
+func noSemverTagsFound(s string) {
+	log.Infof("no SemVer tags to mirror for %s", s)
 }
