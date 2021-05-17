@@ -31,6 +31,7 @@ func init() {
 	// cobra
 	rootCmd.PersistentFlags().StringP("config-file", "c", "/config/replicant.yaml", "File containing the configuration for Replicant")
 	rootCmd.PersistentFlags().BoolP("debug", "d", false, "Enables debug logging")
+	rootCmd.PersistentFlags().BoolP("exit-on-error", "e", false, "Stops program execution immediately when an unexpected error is encountered")
 
 	// viper
 	viper.SetEnvPrefix("replicant")

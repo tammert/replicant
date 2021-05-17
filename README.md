@@ -48,6 +48,7 @@ Global configuration can either be set via environment variables or as long/shor
 |---|---|---|---|---|---|
 |Reference to the YAML config file|REPLICANT_CONFIG_FILE|--config-file|-c|string|/config/replicant.yaml|
 |Enable debug logging|REPLICANT_DEBUG|--debug|-d|bool|false|
+|Stops program execution immediately when an unexpected error is encountered|REPLICANT_EXIT_ON_ERROR|--exit-on-error|-e|bool|false|
 
 ## Supported registries
 * read from any repository anonymously

@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"sort"
 )
 
@@ -136,8 +137,7 @@ func mirrorTag(ic *ImageConfig, tag string) {
 				return
 			}
 		} else {
-			log.Error(err)
-			//TODO: explode here
+			handleError(err)
 		}
 	}
 
@@ -168,10 +168,9 @@ func getImage(from name.Reference) v1.Image {
 	image, err := remote.Image(from, getAuth(from.Context().RegistryStr()))
 	if err != nil {
 		if _, ok := err.(*remote.ErrSchema1); ok {
-			log.Errorf("image %s uses incompatible v1 schema, skipping", from.String())
+			log.Warnf("image %s uses incompatible v1 schema, skipping", from.String())
 		} else {
-			log.Error(err)
-			//TODO: explode here
+			handleError(err)
 		}
 	}
 
@@ -181,8 +180,7 @@ func getImage(from name.Reference) v1.Image {
 func writeImage(to name.Reference, image v1.Image) {
 	err := remote.Write(to, image, getAuth(to.Context().RegistryStr()))
 	if err != nil {
-		log.Error(err)
-		//TODO: explode here
+		handleError(err)
 	}
 }
 
@@ -215,8 +213,7 @@ func listTags(repository string) []string {
 
 	list, err := remote.List(r, getAuth(r.RegistryStr()))
 	if err != nil {
-		log.Error(err)
-		//TODO: explode here
+		handleError(err)
 	}
 
 	return list
@@ -263,4 +260,12 @@ func noTagsFound(s string) {
 
 func noSemverTagsFound(s string) {
 	log.Infof("no SemVer tags to mirror for %s", s)
+}
+
+func handleError(err error) {
+	if viper.GetBool("exit-on-error") {
+		log.Fatal(err)
+	} else {
+		log.Error(err)
+	}
 }
