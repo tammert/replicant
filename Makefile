@@ -16,3 +16,10 @@ release-image:
 .PHONY: build-binary
 build-binary:
 	CGO_ENABLED=0 go build -o replicant
+
+.PHONY: github-release
+github-release:
+	gh release create $(RELEASE_VERSION)
+
+.PHONY: release
+release: release-image github-release
