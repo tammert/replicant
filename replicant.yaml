@@ -22,3 +22,8 @@ images:
     destination: eu.gcr.io/tammert/velero/velero
     mode: semver
     allow-prerelease: true
+  docker:
+    source: docker.io/docker
+    destination: eu.gcr.io/tammert/docker
+    mode: higher
+    allow-prerelease: true

@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"sort"
+	"strings"
 )
 
 func Run(configFile string) {
@@ -169,6 +170,8 @@ func getImage(from name.Reference) v1.Image {
 	if err != nil {
 		if _, ok := err.(*remote.ErrSchema1); ok {
 			log.Warnf("image %s uses incompatible v1 schema, skipping", from.String())
+		} else if strings.Contains(err.Error(), "no child with platform") {
+			log.Warnf("image %s does not have a linux/amd64 image, skipping", from.String())
 		} else {
 			handleError(err)
 		}
@@ -211,7 +214,12 @@ func listTags(repository string) []string {
 		log.Fatal(err)
 	}
 
-	list, err := remote.List(r, getAuth(r.RegistryStr()))
+	platform := remote.WithPlatform(v1.Platform{
+		Architecture: "amd64",
+		OS:           "linux",
+	})
+
+	list, err := remote.List(r, getAuth(r.RegistryStr()), platform)
 	if err != nil {
 		handleError(err)
 	}
