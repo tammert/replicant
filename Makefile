@@ -15,7 +15,7 @@ release-image:
 
 .PHONY: build-binary
 build-binary:
-	CGO_ENABLED=0 go build -o replicant
+	CGO_ENABLED=0 go build -ldflags '-w -s' -o replicant
 
 .PHONY: github-release
 github-release:
