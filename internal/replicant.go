@@ -25,7 +25,7 @@ func Run(configFile string) {
 		case "all":
 			mirrorAllTags(image)
 		default:
-			mirrorHighestTag(image)
+			log.Fatalf("image specific mirroring mode %s not valid", image.Mode)
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 var allowedModes = []string{"highest", "higher", "semver", "all", ""}
 
 type Config struct {
+	Mode   string
 	Images map[string]*ImageConfig
 }
 
@@ -37,9 +38,18 @@ func ReadConfig(configFile string) *Config {
 }
 
 func validateConfig(config *Config) {
+	// Validate and/or set default mode
+	if len(config.Mode) == 0 {
+		config.Mode = "highest"
+	} else if !stringInSlice(config.Mode, allowedModes) {
+		log.Fatalf("default mirroring mode %s not recognized", config.Mode)
+	}
+
 	for _, imageConfig := range config.Images {
-		if !stringInSlice(imageConfig.Mode, allowedModes) {
-			log.Fatalf("mode %s not recognized", imageConfig.Mode)
+		if len(imageConfig.Mode) == 0 {
+			imageConfig.Mode = config.Mode
+		} else if !stringInSlice(imageConfig.Mode, allowedModes) {
+			log.Fatalf("image specific mirroring mode %s not recognized", imageConfig.Mode)
 		}
 	}
 }

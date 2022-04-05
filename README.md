@@ -20,7 +20,7 @@ The user is expected to take care of scheduling. Some examples include running p
 
 ### Mirroring modes
 Replicant supports 4 types of mirroring in the `mode` field:
-1) `highest`: the highest SemVer image tag is mirrored
+1) `highest`: the highest SemVer image tag is mirrored (default mirroring mode)
 2) `higher`: all SemVer image tags greater than the highest in the destination repository are mirrored
 3) `semver`: all SemVer image tags are mirrored
 4) `all`: **all** image tags are mirrored
@@ -28,13 +28,14 @@ Replicant supports 4 types of mirroring in the `mode` field:
 ## Configuration file
 Replicant needs a configuration file to function, in the following format:
 ```yaml
+mode: higher # if not specified, defaults to `highest`
 images:
   image-name-1:
     source: docker.io/project/image
     destination: gcr.io/private-repo/project/image
-    mode: highest|higher|semver|all # when not specified, defaults to `highest`
-    allow-prerelease: true|false # when not specified, defaults to false
-    replace-tag: true|false # when not specified, defaults to false
+    mode: highest|higher|semver|all # if not specified, use top-level mode
+    allow-prerelease: true|false # if not specified, defaults to false
+    replace-tag: true|false # if not specified, defaults to false
   image-name-2:
     ...
   image-name-n:

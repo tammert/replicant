@@ -1,8 +1,8 @@
+mode: higher # default highest
 images:
   nginx:
     source: k8s.gcr.io/ingress-nginx/controller
     destination: eu.gcr.io/tammert/ingress-nginx/controller
-    mode: higher # default highest
   atlantis:
     source: docker.io/runatlantis/atlantis
     destination: eu.gcr.io/tammert/runatlantis/atlantis
@@ -26,4 +26,8 @@ images:
     source: docker.io/docker
     destination: eu.gcr.io/tammert/docker
     mode: higher
+    allow-prerelease: true
+  google-cloud-sdk:
+    source: google/cloud-sdk
+    destination: eu.gcr.io/tammert/google/cloud-sdk
     allow-prerelease: true
