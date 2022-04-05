@@ -17,7 +17,7 @@ type ImageConfig struct {
 	SourceRepository      string `yaml:"source"`
 	DestinationRepository string `yaml:"destination"`
 	Mode                  string `yaml:"mode"`
-	AllowPrerelease       bool   `yaml:"allow-prerelease"`
+	Compatibility         string `yaml:"compatibility"`
 	ReplaceTag            bool   `yaml:"replace-tag"`
 }
 

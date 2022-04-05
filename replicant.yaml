@@ -6,8 +6,7 @@ images:
   atlantis:
     source: docker.io/runatlantis/atlantis
     destination: eu.gcr.io/tammert/runatlantis/atlantis
-    mode: all
-    allow-prerelease: true # default false
+    mode: semver
   external-dns:
     source: k8s.gcr.io/external-dns/external-dns
     destination: eu.gcr.io/tammert/external-dns/external-dns
@@ -21,13 +20,12 @@ images:
     source: velero/velero # can omit docker.io
     destination: eu.gcr.io/tammert/velero/velero
     mode: semver
-    allow-prerelease: true
   docker:
     source: docker.io/docker
     destination: eu.gcr.io/tammert/docker
-    mode: higher
-    allow-prerelease: true
+    compatibility: dind
   google-cloud-sdk:
     source: google/cloud-sdk
     destination: eu.gcr.io/tammert/google/cloud-sdk
-    allow-prerelease: true
+    compatibility: alpine
+    mode: highest

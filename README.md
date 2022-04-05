@@ -14,9 +14,9 @@ The user is expected to take care of scheduling. Some examples include running p
 ## Configuration options (per source)
 * `source`: the 'from' repository
 * `destination`: the 'to' repository
-* `mode`: see *mirroring modes* below
-* `allow-prerelease`: if `true`, prerelease versions (as per the SemVer specification) will also be eligible for mirroring for SemVer *modes*
-* `replace-tag`: if `true`, will check if the image ID for an equal tag is the same for the source and the destination. If not, will replace the tag in the destination repository
+* [optional] `mode`: see *mirroring modes* below
+* [optional] `compatibility`: pick a single compatibility string (for example, `alpine` or `dind`) to filter on with any of the SemVer modes. Must be an *exact* match, tag `v1.2.3-slim` uses compatibility `slim`. Useful option for images with multiple variants
+* [optional] `replace-tag`: if `true`, will check if the image ID for an equal tag is the same for the source and the destination. If not, will replace the tag in the destination repository
 
 ### Mirroring modes
 Replicant supports 4 types of mirroring in the `mode` field:
@@ -34,7 +34,7 @@ images:
     source: docker.io/project/image
     destination: gcr.io/private-repo/project/image
     mode: highest|higher|semver|all # if not specified, use top-level mode
-    allow-prerelease: true|false # if not specified, defaults to false
+    compatibility: alpine # if not specified, will only mirror plain SemVer versions
     replace-tag: true|false # if not specified, defaults to false
   image-name-2:
     ...
