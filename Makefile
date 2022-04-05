@@ -19,7 +19,7 @@ build-binary:
 
 .PHONY: github-release
 github-release:
-	gh release create $(RELEASE_VERSION)
+	gh release create $(RELEASE_VERSION) --generate-notes
 
 .PHONY: release
 release: release-image github-release
