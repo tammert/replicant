@@ -9,23 +9,24 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"sort"
+	"strconv"
 	"strings"
 )
 
 func Run(configFile string) {
 	config := ReadConfig(configFile)
-	for _, image := range config.Images {
-		switch image.Mode {
+	for _, imageConfig := range config.Images {
+		switch imageConfig.Mode {
 		case "highest":
-			mirrorHighestTag(image)
+			mirrorHighestTag(imageConfig)
 		case "higher":
-			mirrorHigherTags(image)
+			mirrorHigherTags(imageConfig)
 		case "semver":
-			mirrorSemVerTags(image)
+			mirrorSemVerTags(imageConfig)
 		case "all":
-			mirrorAllTags(image)
+			mirrorAllTags(imageConfig)
 		default:
-			log.Fatalf("image specific mirroring mode %s not valid", image.Mode)
+			log.Fatalf("image specific mirroring mode %s not valid", imageConfig.Mode)
 		}
 	}
 }
@@ -57,7 +58,7 @@ func mirrorSemVerTags(ic *ImageConfig) {
 		return
 	}
 
-	sorted := semVerSort(tags, ic.Compatibility)
+	sorted := semVerSort(ic, tags)
 	if len(sorted) > 0 {
 		for _, tag := range sorted {
 			mirrorTag(ic, tag.Original())
@@ -74,7 +75,7 @@ func mirrorHigherTags(ic *ImageConfig) {
 
 	var tagsToMirror []*semver.Version
 
-	highestDestinationTag := findHighestTag(ic.DestinationRepository, ic.Compatibility)
+	highestDestinationTag := findHighestTag(ic, ic.DestinationRepository)
 	if highestDestinationTag == nil {
 		log.Infof("no highest tag found in %s, can't determine which tags from %s to mirror", ic.DestinationRepository, ic.SourceRepository)
 		return
@@ -85,7 +86,7 @@ func mirrorHigherTags(ic *ImageConfig) {
 		noTagsFound(ic.SourceRepository)
 		return
 	}
-	sorted := semVerSort(tags, ic.Compatibility)
+	sorted := semVerSort(ic, tags)
 	if len(sorted) > 0 {
 		for _, tag := range sorted {
 			if tag.GreaterThan(highestDestinationTag) {
@@ -106,7 +107,7 @@ func mirrorHigherTags(ic *ImageConfig) {
 func mirrorHighestTag(ic *ImageConfig) {
 	log.Infof("begin mirroring highest tag from %s to %s", ic.SourceRepository, ic.DestinationRepository)
 
-	tag := findHighestTag(ic.SourceRepository, ic.Compatibility)
+	tag := findHighestTag(ic, ic.SourceRepository)
 	if tag != nil {
 		mirrorTag(ic, tag.Original())
 		log.Infof("done mirroring highest tag from %s to %s", ic.SourceRepository, ic.DestinationRepository)
@@ -191,12 +192,12 @@ func getAuth(registry string) remote.Option {
 	return remote.WithAuth(getCorrectAuth(registry))
 }
 
-func findHighestTag(repository string, compatibility string) *semver.Version {
+func findHighestTag(ic *ImageConfig, repository string) *semver.Version {
 	var versions = semver.Collection{}
 
 	tags := listTags(repository)
 	if len(tags) > 0 {
-		versions = semVerSort(tags, compatibility)
+		versions = semVerSort(ic, tags)
 	} else {
 		return nil
 	}
@@ -228,7 +229,7 @@ func listTags(repository string) []string {
 }
 
 // semVerSort sorts SemVer versions, removes non-SemVer values.
-func semVerSort(xs []string, compatibility string) semver.Collection {
+func semVerSort(ic *ImageConfig, xs []string) semver.Collection {
 	var xv semver.Collection
 
 	for _, v := range xs {
@@ -247,15 +248,24 @@ func semVerSort(xs []string, compatibility string) semver.Collection {
 			log.Debugf("%s is probably not a SemVer version, ignoring", version.String())
 			continue
 		}
-		// Check if compatibility is correct
-		if len(compatibility) > 0 && version.Prerelease() != compatibility {
-			log.Debugf("%s is not of the correct compatibility (%s), ignoring", version.String(), compatibility)
+		// Check if compatibility is correct, if specified.
+		if ic.Compatibility != "" && version.Prerelease() != ic.Compatibility {
+			log.Debugf("%s is not of the correct compatibility (%s), ignoring", version.String(), ic.Compatibility)
 			continue
 		}
-		// If no compatibility is specified, ignore prerelease versions
-		if len(compatibility) == 0 && len(version.Prerelease()) > 0 {
+		// If no compatibility is specified, ignore prerelease versions.
+		if ic.Compatibility == "" && len(version.Prerelease()) > 0 {
 			log.Debugf("%s is a prerelease version, ignoring", version.String())
 			continue
+		}
+
+		// Check if we need to filter for a pinned major.
+		if ic.PinnedMajor != "" {
+			pmi, _ := strconv.Atoi(ic.PinnedMajor) // Already converted before, no need to check for err again.
+			if uint64(pmi) != version.Major() {
+				log.Debugf("%s does not have the correct major version (%d), ignoring", version.String(), pmi)
+				continue
+			}
 		}
 
 		xv = append(xv, version)

@@ -17,6 +17,7 @@ The user is expected to take care of scheduling. Some examples include running p
 * [optional] `mode`: see *mirroring modes* below
 * [optional] `compatibility`: pick a single compatibility string (for example, `alpine` or `dind`) to filter on with any of the SemVer modes. Must be an *exact* match, tag `v1.2.3-slim` uses compatibility `slim`. Useful option for images with multiple variants
 * [optional] `replace-tag`: if `true`, will check if the image ID for an equal tag is the same for the source and the destination. If not, will replace the tag in the destination repository
+* [optional] `pinned-major`: integer value, used to denote on which SemVer major to filter. Used to only duplicate tags in a single major release
 
 ### Mirroring modes
 Replicant supports 4 types of mirroring in the `mode` field:
@@ -36,6 +37,7 @@ images:
     mode: highest|higher|semver|all # if not specified, use top-level mode
     compatibility: alpine # if not specified, will only mirror plain SemVer versions
     replace-tag: true|false # if not specified, defaults to false
+    pinned-major: 6 # if not specified, all major versions are acceptable (so long as they're valid in the selected mode)
   image-name-2:
     ...
   image-name-n:
