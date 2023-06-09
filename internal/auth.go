@@ -12,7 +12,7 @@ import (
 )
 
 type CredentialHelper struct {
-	gcrCredentials authn.Authenticator
+	gcpCredentials authn.Authenticator
 	ecrCredentials authn.Authenticator
 	acrCredentials authn.Authenticator
 }
@@ -22,7 +22,9 @@ var savedCredentials = &CredentialHelper{}
 func getCorrectAuth(registry string) authn.Authenticator {
 	switch {
 	case strings.Contains(registry, "gcr.io"):
-		return gcrAuthenticator()
+		return gcpAuthenticator()
+	case strings.Contains(registry, "pkg.dev"):
+		return gcpAuthenticator()
 	case strings.Contains(registry, "dkr.ecr"):
 		return ecrAuthenticator()
 	case strings.Contains(registry, "azurecr.io"):
@@ -32,10 +34,10 @@ func getCorrectAuth(registry string) authn.Authenticator {
 	}
 }
 
-func gcrAuthenticator() authn.Authenticator {
+func gcpAuthenticator() authn.Authenticator {
 	// See if we have credentials already saved.
-	if savedCredentials.gcrCredentials != nil {
-		return savedCredentials.gcrCredentials
+	if savedCredentials.gcpCredentials != nil {
+		return savedCredentials.gcpCredentials
 	}
 
 	// No credentials saved, create new ones.
@@ -43,7 +45,7 @@ func gcrAuthenticator() authn.Authenticator {
 	if err != nil {
 		log.Fatal(err)
 	}
-	savedCredentials.gcrCredentials = authenticator
+	savedCredentials.gcpCredentials = authenticator
 	return authenticator
 }
 
