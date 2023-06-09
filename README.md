@@ -62,7 +62,7 @@ Global configuration can either be set via environment variables or as long/shor
 Currently, only one set of credentials per registry *type* is supported. This means that, for example, all configured GCR repositories in both `source` and `destination` will use the same credentials. Furthermore, at the current time, GCR/ACR/ECR will always require valid credentials, even when they're publicly readable.
 
 ### Registry authentication
-#### GCR
+#### GCR/Artifact Registry
 Replicant uses `NewEnvAuthenticator()` to get credentials automatically. More information on that [here](https://cloud.google.com/docs/authentication/production#automatically). When running on GKE, you can combine the above with [Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity).
 #### ACR
 Supports logging in with [service principal + password](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal#authenticate-with-the-service-principal). Set `AZURE_SP_ID` and `AZURE_SP_PASSWORD` in your environment with the correct values.
